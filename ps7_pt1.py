@@ -57,12 +57,12 @@ class FlexibleAdopter(Adopter):
 
     def get_score(self, AdoptionCenter):
         ''' Returns a floating point containing the score of a flexible adopter '''
-        #score = AdoptionCenter.get_number_of_species(self.get_desired_species())
-        score = Adopter.get_score(Adopter, AdoptionCenter)
+        score = AdoptionCenter.get_number_of_species(self.get_desired_species())
+        #score = super(FlexibleAdopter, self).get_score(AdoptionCenter)
         numother = 0
         for pet in self.considered_species:
             numother += AdoptionCenter.get_number_of_species(pet)
-        return float(score + .03 * numother)
+        return float(score + .3 * numother)
 
 class FearfulAdopter(Adopter):
     def __init__(self, name, desired_species, feared_species):
@@ -72,10 +72,46 @@ class FearfulAdopter(Adopter):
     def get_score(self, AdoptionCenter):
         ''' Returns a floating point containing the score of a fearful adopter '''
         score = AdoptionCenter.get_number_of_species(self.get_desired_species())
-        numother = 0
-        for pet in self.considered_species:
-            numother += AdoptionCenter.get_number_of_species(pet)
-        return float(score - .03 * numother)
+        #score = super(FearfulAdopter, self).get_number_of_species(self.get_desired_species())
+        numother = AdoptionCenter.get_number_of_species(self.feared_species)
+        total = score - .3 * numother
+        if total < 0:
+            return 0.0
+        else:
+            return float(score - .3 * numother)
+
+class AllergicAdopter(Adopter):
+    def __init__(self, name, desired_species, allergic_species):
+        Adopter.__init__(self, name, desired_species)
+        self.allergic_species = allergic_species
+
+    def get_score(self, AdoptionCenter):
+        ''' Returns a floating point containing the score of a allergic adopter '''
+        allergyscore = 0
+        for pet in self.allergic_species:
+            allergyscore += AdoptionCenter.get_number_of_species(pet)
+
+        if allergyscore > 0:
+            return 0.0
+        else:
+            return float(1 * AdoptionCenter.get_number_of_species(self.get_desired_species()))
+
+class MedicatedAllergicAdopter(AllergicAdopter):
+    def __init__(self, name, desired_species, allergic_species, medicine_effectiveness):
+        AllergicAdopter.__init__(self, name, desired_species, allergic_species)
+        self.medicine_effectiveness = medicine_effectiveness
+
+    def get_score(self, AdoptionCenter):
+        ''' Returns a floating point containing the score of a medicated allergic adopter '''
+        mDict = self.medicine_effectiveness.copy()
+        # cleanse the dictionary
+        for key, value in self.medicine_effectiveness.iteritems():
+            if AdoptionCenter.get_number_of_species(key) < 1:
+                del mDict[key]
+
+        # get the lowest score
+        score = self.medicine_effectiveness[min(mDict, key = mDict.get)]
+        return score * float(1 * AdoptionCenter.get_number_of_species(self.get_desired_species()))
 
 
 # Basic Tests for AdoptionCenter
@@ -100,7 +136,16 @@ print sara.get_score(dfl)
 
 # Basic Tests for FlexibleAdopter
 troy = FlexibleAdopter("Troy", "Dog", ["Cat", "Spider", "Ferret"])
-print troy.get_score(dfl)
+#print troy.get_score(dfl)
 
 # Basic Tests for FearfulAdopter
 lauren = FearfulAdopter("Lauren", "Dog", "Lizard")
+#print lauren.get_score(dfl)
+
+# Basic Tests for AllergicAdopter
+kyle = AllergicAdopter("Kyle", "Dog", ["Mouse", "Horse"])
+#print kyle.get_score(dfl)
+
+# Basic Tests for MedicatedAllergicAdopter
+zach = MedicatedAllergicAdopter("Zach", "Dog", ["Dog", "Cat"], {"Dog": 0.5, "Cat": 0.0, "Horse": 1.0})
+print zach.get_score(dfl)
